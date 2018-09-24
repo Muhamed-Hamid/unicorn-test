@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: drkiq-volume
+  labels:
+    type: local
+    app: drkiq
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 500Mi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: "/kube/ruby/drkiq"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: drkiq-claim
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+status: {}
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: sidekiq-volume
+  labels:
+    type: local
+    app: drkiq
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 500Mi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: "/kube/ruby/drkiq"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sidekiq-claim
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+status: {}

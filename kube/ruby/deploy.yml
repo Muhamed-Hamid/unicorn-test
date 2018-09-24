@@ -1,0 +1,132 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unicorn-deployment
+spec:
+  selector:
+    matchLabels:
+      app: unicorn
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: unicorn
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:latest
+          imagePullPolicy: Never
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: secrets
+                  key: db-user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: secrets
+                  key: db-pass
+          resources: {}
+          volumeMounts:
+            - name:  postgres-datastore
+              mountPath:  /var/lib/postgres/data
+          ports:
+            - name: postgres-port
+              containerPort: 5432
+        - name: redis
+          image: redis:latest
+          imagePullPolicy: Never
+          volumeMounts:
+            - mountPath: /var/lib/redis/data
+              name: redis-datastore
+          ports:
+            - name: cache-port
+              containerPort: 6379
+        - name: drkiq
+          image: drkiq:latest
+          imagePullPolicy: Never
+          ports:
+          - name:  drkiq-ports
+            containerPort:  8000
+            protocol: TCP
+          env:
+          - name: CACHE_URL
+            valueFrom:
+              configMapKeyRef:
+                name:  mymap
+                key:  CACHE_URL
+          - name: DATABASE_URL
+            valueFrom:
+              configMapKeyRef:
+                name: mymap
+                key: DATABASE_URL
+          - name: JOB_WORKER_URL
+            valueFrom:
+              configMapKeyRef:
+                name: mymap
+                key: JOB_WORKER_URL
+          - name: LISTEN_ON
+            valueFrom:
+              configMapKeyRef:
+                name: mymap
+                key: LISTEN_ON
+          - name: SECRET_TOKEN
+            valueFrom:
+              configMapKeyRef:
+                name: mymap
+                key: SECRET_TOKEN
+          - name: WORKER_PROCESSES
+            valueFrom:
+              configMapKeyRef:
+                name: mymap
+                key: WORKER_PROCESSES
+          volumeMounts:
+            - name:  drkiq-volume
+              mountPath:  /drkiq
+        - name: sidekiq
+          image: drkiq:latest
+          imagePullPolicy: Never
+          env:
+            - name: SECRET_TOKEN
+              valueFrom:
+                configMapKeyRef:
+                  name: mymap
+                  key: SECRET_TOKEN
+            - name: WORKER_PROCESSES
+              valueFrom:
+                configMapKeyRef:
+                  name: mymap
+                  key: WORKER_PROCESSES
+            - name: CACHE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name:  mymap
+                  key:  CACHE_URL
+            - name: DATABASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: mymap
+                  key: DATABASE_URL
+            - name: JOB_WORKER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: mymap
+                  key: JOB_WORKER_URL
+          command: [ "bundle", "exec", "sidekiq", "-c", "config/sidekiq.yml" ]
+          volumeMounts:
+          - mountPath: /drkiq
+            name: sidekiq-volume
+      volumes:
+        - name: postgres-datastore
+          persistentVolumeClaim:
+            claimName: postgres-claim
+        - name: redis-datastore
+          persistentVolumeClaim:
+           claimName: redis-claim
+        - name: drkiq-volume
+          persistentVolumeClaim:
+           claimName: drkiq-claim
+        - name:  sidekiq-volume
+          persistentVolumeClaim:
+            claimName: sidekiq-claim

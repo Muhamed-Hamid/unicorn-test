@@ -18,3 +18,4 @@
 .git
 .dockerignore
 Gemfile.lock
+Gemfile
